@@ -3,35 +3,38 @@ const cors = require('cors');
 const axios = require('axios');
 
 const app = express();
-const PORT = process.env.PORT || 3000; // ← IMPORTANTE: Usar PORT de Render
+const PORT = process.env.PORT || 3000;
 
-// CORS - Permitir tu dominio de producción
+// ⭐ CORS CORREGIDO - Todos los dominios necesarios
 const allowedOrigins = [
-  'http://localhost:4200',                     // Desarrollo
-  //'https://tu-app.vercel.app',               // Producción Vercel
-  'https://burtsa.netlify.app',                // Producción Netlify
-  'https://www.txemaserrano.com',    // Con www
-  'https://txemaserrano.com',        // Sin www
-  'http://www.txemaserrano.com',     // HTTP (por si acaso)
-  'http://txemaserrano.com'          // HTTP sin www
+  'http://localhost:4200',                    // Desarrollo local
+  'https://www.txemaserrano.com',             // ✅ Producción con www
+  'https://txemaserrano.com',                 // ✅ Producción sin www
+  'http://www.txemaserrano.com',              // HTTP con www (por si acaso)
+  'http://txemaserrano.com',                  // HTTP sin www (por si acaso)
+  'https://burtsa.netlify.app'                // Netlify (si lo usas)
 ];
 
 app.use(cors({
   origin: function(origin, callback) {
-    // Permitir peticiones sin origin (apps móviles, Postman, etc)
+    // Permitir peticiones sin origin (Postman, curl, apps móviles)
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) === -1) {
+      console.log(`❌ CORS BLOQUEADO: ${origin}`);
+      console.log(`   Dominios permitidos: ${allowedOrigins.join(', ')}`);
       return callback(new Error('CORS no permitido'), false);
     }
+    
+    console.log(`✅ CORS PERMITIDO: ${origin}`);
     return callback(null, true);
   },
   credentials: true
 }));
 
-// Middleware para logs
+// Middleware para logs detallados
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.headers.origin || 'sin origin'}`);
   next();
 });
 
@@ -43,14 +46,14 @@ app.get('/api/quote/:symbol', async (req, res) => {
   const { symbol } = req.params;
   
   try {
-    console.log(`📊 Obteniendo: ${symbol}`);
+    console.log(`📊 Obteniendo cotización: ${symbol}`);
     
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`;
     const response = await axios.get(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       },
-      timeout: 10000 // 10 segundos
+      timeout: 10000
     });
 
     const result = response.data.chart.result[0];
@@ -129,7 +132,8 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    allowedOrigins: allowedOrigins
   });
 });
 
@@ -142,7 +146,8 @@ app.get('/', (req, res) => {
       quote: '/api/quote/:symbol',
       index: '/api/index/:symbol',
       health: '/health'
-    }
+    },
+    allowedOrigins: allowedOrigins
   });
 });
 
@@ -156,5 +161,8 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📊 Endpoints disponibles:`);
   console.log(`   - GET /api/quote/:symbol`);
   console.log(`   - GET /api/index/:symbol`);
-  console.log(`   - GET /health\n`);
+  console.log(`   - GET /health`);
+  console.log(`\n✅ CORS configurado para:`);
+  allowedOrigins.forEach(origin => console.log(`   - ${origin}`));
+  console.log('');
 });
