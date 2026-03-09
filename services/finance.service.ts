@@ -9,8 +9,8 @@ import { environment } from '../../environments/environment';
 })
 export class YahooFinanceService {
   
-  // URL del backend local
-  private backendUrl = 'http://localhost:3000/api';
+  // ⭐ CORREGIDO: Ahora lee de environment según el modo (dev/prod)
+  private backendUrl = environment.yahooFinance?.backendUrl || 'http://localhost:3000/api';
   
   // Mapeo de símbolos a Yahoo Finance
   private symbolMap: { [key: string]: string } = {
@@ -52,7 +52,12 @@ export class YahooFinanceService {
     '^IBEX': '^IBEX'
   };
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    // Log para debugging
+    console.log(`🔧 YahooFinanceService inicializado`);
+    console.log(`📡 Backend URL: ${this.backendUrl}`);
+    console.log(`🏭 Production: ${environment.production}`);
+  }
 
   /**
    * Obtener cotización usando backend propio
@@ -63,18 +68,18 @@ export class YahooFinanceService {
     }
 
     const ticker = this.symbolMap[symbol] || symbol;
-    
-    // Llamar al backend local
     const url = `${this.backendUrl}/quote/${ticker}`;
     
+    console.log(`📊 GET ${url}`);
+    
     return this.http.get(url, { responseType: 'json' }).pipe(
-      timeout(5000),
+      timeout(10000),
       map((data: any) => {
-        console.log(`✅ Datos recibidos de ${ticker}:`, data);
+        console.log(`✅ ${ticker}: ${data.c}`);
         return data;
       }),
       catchError(error => {
-        console.error(`❌ Error obteniendo ${ticker} del backend:`, error);
+        console.error(`❌ Error ${ticker}:`, error);
         return throwError(() => new Error(`No se pudo obtener datos de ${symbol}`));
       })
     );
@@ -84,13 +89,20 @@ export class YahooFinanceService {
    * Obtener datos de índice usando backend
    */
   getIndex(symbol: string): Observable<any> {
+    if (!environment.yahooFinance?.enabled) {
+      return throwError(() => new Error('Yahoo Finance deshabilitada'));
+    }
+
     const ticker = this.symbolMap[symbol] || symbol;
     const url = `${this.backendUrl}/index/${ticker}`;
     
+    console.log(`📈 GET ${url}`);
+    
     return this.http.get(url, { responseType: 'json' }).pipe(
-      timeout(5000),
+      timeout(10000),
+      map((data: any) => data),
       catchError(error => {
-        console.error(`❌ Error obteniendo índice ${ticker}:`, error);
+        console.error(`❌ Error índice ${ticker}:`, error);
         return throwError(() => error);
       })
     );
@@ -131,19 +143,5 @@ export class YahooFinanceService {
    */
   isConfigured(): boolean {
     return environment.yahooFinance?.enabled === true;
-  }
-
-  /**
-   * Verificar si el backend está disponible
-   */
-  async checkBackendHealth(): Promise<boolean> {
-    try {
-      const response = await this.http.get(`http://localhost:3000/health`).toPromise();
-      console.log('✅ Backend disponible:', response);
-      return true;
-    } catch (error) {
-      console.error('❌ Backend no disponible:', error);
-      return false;
-    }
   }
 }
