@@ -7,10 +7,13 @@ const PORT = process.env.PORT || 3000; // ← IMPORTANTE: Usar PORT de Render
 
 // CORS - Permitir tu dominio de producción
 const allowedOrigins = [
-  'http://localhost:4200',           // Desarrollo
-  //'https://tu-app.vercel.app',       // Producción Vercel
-  'https://burtsa.netlify.app',      // Producción Netlify
-  'http://txemaserrano.com/angula/burtsa'            // Tu dominio personalizado
+  'http://localhost:4200',                     // Desarrollo
+  //'https://tu-app.vercel.app',               // Producción Vercel
+  'https://burtsa.netlify.app',                // Producción Netlify
+  'https://www.txemaserrano.com',    // Con www
+  'https://txemaserrano.com',        // Sin www
+  'http://www.txemaserrano.com',     // HTTP (por si acaso)
+  'http://txemaserrano.com'          // HTTP sin www
 ];
 
 app.use(cors({
